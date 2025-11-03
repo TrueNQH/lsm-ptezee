@@ -583,7 +583,7 @@ export default function HomePro() {
                       <div className="sm:col-span-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         
                         <div className="flex items-center justify-end gap-3">
-                          <SecondaryButton href="#">Tải brochure</SecondaryButton>
+                          <SecondaryButton href="#">Quay lại</SecondaryButton>
                           <PrimaryButton>
                             {t("submit")} <ArrowRight className="h-4 w-4" />
                           </PrimaryButton>
@@ -610,8 +610,8 @@ export default function HomePro() {
                     <div className="mt-6 rounded-2xl border border-sky-100 bg-white p-4 text-sm text-slate-600">
                       <div className="mb-2 text-slate-900 font-semibold">Liên hệ nhanh</div>
                       <div className="flex flex-wrap items-center gap-3 text-slate-700">
-                        <span className="inline-flex items-center gap-2"><Phone className="h-4 w-4 text-sky-600"/> +84 236 000 000</span>
-                        <span className="inline-flex items-center gap-2"><Mail className="h-4 w-4 text-sky-600"/> hello@dla-lms.com</span>
+                        <span className="inline-flex items-center gap-2"><Phone className="h-4 w-4 text-sky-600"/> +84775518939</span>
+                        <span className="inline-flex items-center gap-2"><Mail className="h-4 w-4 text-sky-600"/> hi@xinkgroup.com</span>
                       </div>
                     </div>
                   </div>
@@ -635,7 +635,7 @@ export default function HomePro() {
         </div>
         <div className="mt-6 flex gap-4">
           <a href="#contact" className="grid h-12 w-12 place-items-center rounded-2xl bg-white/5 ring-1 ring-white/10 hover:bg-white/10"><Phone className="h-5 w-5"/></a>
-          <a href="mailto:hello@dla-lms.com" className="grid h-12 w-12 place-items-center rounded-2xl bg-white/5 ring-1 ring-white/10 hover:bg-white/10"><Mail className="h-5 w-5"/></a>
+          <a href="mailto:hi@xinkgroup.com" className="grid h-12 w-12 place-items-center rounded-2xl bg-white/5 ring-1 ring-white/10 hover:bg-white/10"><Mail className="h-5 w-5"/></a>
           <a href="#map" className="grid h-12 w-12 place-items-center rounded-2xl bg-white/5 ring-1 ring-white/10 hover:bg-white/10"><MapPin className="h-5 w-5"/></a>
         </div>
       </div>
