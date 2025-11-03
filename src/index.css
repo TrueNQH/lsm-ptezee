@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+}
+
+/* Beautiful blue-white gradient background for the entire site */
+body {
+  background: linear-gradient(135deg, #ffffff 0%, #e3f2fd 25%, #bbdefb 50%, #90caf9 75%, #64b5f6 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+/* Alternative gradient options */
+.gradient-blue-white {
+  background: linear-gradient(135deg, #ffffff 0%, #f0f8ff 20%, #e6f3ff 40%, #cce7ff 60%, #99d6ff 80%, #66c2ff 100%);
+}
+
+.gradient-ocean {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fbff 25%, #e8f4fd 50%, #d1e9fc 75%, #4fc3f7 100%);
+}
+
+/* Simple utility for container max width */
+.container {
+  @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8;
+}
