@@ -1,7 +1,7 @@
 export const user = {
   // Personal Profile
   name: "Nguyen Van A",
-  email: "a@demo.com",
+  email: "nvana@dla.com",
   phone: "+84 123 456 789",
   dateOfBirth: "1995-03-15",
   nationality: "Vietnam",

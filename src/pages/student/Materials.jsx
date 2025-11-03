@@ -21,7 +21,7 @@ export const videoLessons = [
     tags: ["parts of speech", "sentence basics"],
     duration: "15:30",
     durationSec: 930,
-    thumbnail: "/api/placeholder/300/200?text=Grammar+Intro",
+    thumbnail: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=900&q=60",
     videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
     completed: false,
     progress: 0.12,
@@ -48,7 +48,7 @@ export const videoLessons = [
     tags: ["present tenses", "usage"],
     duration: "12:45",
     durationSec: 765,
-    thumbnail: "/api/placeholder/300/200?text=Present+Tenses",
+    thumbnail: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=900&q=60",
     videoUrl: "https://www.w3schools.com/html/movie.mp4",
     completed: true,
     progress: 1,
@@ -71,7 +71,7 @@ export const videoLessons = [
     tags: ["collocations", "word families"],
     duration: "18:20",
     durationSec: 1100,
-    thumbnail: "/api/placeholder/300/200?text=Vocab+Advanced",
+    thumbnail: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=900&q=60",
     videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4",
     completed: false,
     progress: 0.2,
@@ -128,7 +128,7 @@ const Materials = () => {
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
       <div className="relative">
         <img
-          src={course.image || '/api/placeholder/300/200'}
+          src={course.image || 'https://images.unsplash.com/photo-1513258496099-48168024aec0?auto=format&fit=crop&w=900&q=60'}
           alt={course.title}
           className="w-full h-40 object-cover"
         />
@@ -483,7 +483,7 @@ const Materials = () => {
             { id: 'books', label: 'Books', icon: BookOpen },
             { id: 'videos', label: 'Videos', icon: Video },
             { id: 'practice', label: 'Practice Tests', icon: FileText },
-            { id: 'others', label: 'Others', icon: Award }
+           
           ].map(tab => {
             const Icon = tab.icon
             return (
@@ -533,12 +533,7 @@ const Materials = () => {
           )}
           {activeTab === 'books' && renderBooksTab()}
           {activeTab === 'practice' && renderPracticeTab()}
-          {activeTab === 'others' && (
-            <div className="text-center py-12">
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Other Resources Coming Soon</h3>
-              <p className="text-gray-600">This section is under development.</p>
-            </div>
-          )}
+          
         </div>
       </div>
     </div>

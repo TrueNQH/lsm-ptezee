@@ -12,7 +12,7 @@ export const shortCourses = [
     duration: '6 weeks',
     level: 'Intermediate',
     enrolled: 1250,
-    image: '/api/placeholder/300/200',
+    image: 'https://images.unsplash.com/photo-1513258496099-48168024aec0?auto=format&fit=crop&w=900&q=60',
     description: 'Master PTE Academic Speaking with proven strategies and practice tests.',
     features: ['20+ Practice Tests', 'AI Feedback', 'Live Sessions', 'Certificate'],
     curriculum: [
@@ -137,7 +137,7 @@ export const shortCourses = [
     duration: '4 weeks',
     level: 'Advanced',
     enrolled: 890,
-    image: '/api/placeholder/300/200',
+    image: 'https://images.unsplash.com/photo-1513258496099-48168024aec0?auto=format&fit=crop&w=900&q=60',
     description: 'Achieve Band 8+ in IELTS Writing Task 2 with expert guidance.',
     features: ['Essay Templates', 'Band 9 Examples', 'Personal Feedback', 'Writing Tools'],
     curriculum: [
@@ -164,7 +164,7 @@ export const shortCourses = [
     duration: '8 weeks',
     level: 'Beginner',
     enrolled: 2100,
-    image: '/api/placeholder/300/200',
+    image: 'https://images.unsplash.com/photo-1513258496099-48168024aec0?auto=format&fit=crop&w=900&q=60',
     description: 'Complete grammar foundation course for English learners.',
     features: ['Interactive Exercises', 'Grammar Checker', 'Progress Tracking', 'Mobile App'],
     curriculum: [
@@ -198,7 +198,7 @@ export const groupClasses = [
     zoomLink: 'https://zoom.us/j/123456789',
     meetingId: '123 456 789',
     passcode: 'PTE2024',
-    image: '/api/placeholder/300/200',
+    image: 'https://images.unsplash.com/photo-1513258496099-48168024aec0?auto=format&fit=crop&w=900&q=60',
     description: 'Intensive group coaching for PTE Academic with live practice sessions.',
     features: ['Live Classes', 'Group Practice', 'Weekly Assessments', 'Study Materials'],
     preChecklist: [
@@ -245,7 +245,7 @@ export const groupClasses = [
     zoomLink: 'https://zoom.us/j/987654321',
     meetingId: '987 654 321',
     passcode: 'IELTS24',
-    image: '/api/placeholder/300/200',
+    image: 'https://images.unsplash.com/photo-1513258496099-48168024aec0?auto=format&fit=crop&w=900&q=60',
     description: 'Build confidence in IELTS Speaking through interactive group sessions.',
     features: ['Mock Interviews', 'Peer Practice', 'Fluency Drills', 'Feedback Sessions'],
     preChecklist: [
@@ -275,7 +275,7 @@ export const oneOnOneClasses = [
     zoomLink: 'https://zoom.us/j/555666777',
     meetingId: '555 666 777',
     passcode: 'COACH24',
-    image: '/api/placeholder/300/200',
+    image: 'https://images.unsplash.com/photo-1513258496099-48168024aec0?auto=format&fit=crop&w=900&q=60',
     description: 'Personalized one-on-one coaching tailored to your PTE goals.',
     features: ['Customized Curriculum', 'Real-time Feedback', 'Flexible Scheduling', 'Progress Reports'],
     focusAreas: ['Speaking Fluency', 'Writing Structure', 'Reading Speed', 'Listening Accuracy'],
@@ -317,7 +317,7 @@ export const oneOnOneClasses = [
     zoomLink: 'https://zoom.us/j/888999000',
     meetingId: '888 999 000',
     passcode: 'SPEAK24',
-    image: '/api/placeholder/300/200',
+    image: 'https://images.unsplash.com/photo-1513258496099-48168024aec0?auto=format&fit=crop&w=900&q=60',
     description: 'Intensive speaking practice for IELTS Band 7+ achievement.',
     features: ['Mock Tests', 'Pronunciation Training', 'Vocabulary Building', 'Confidence Building'],
     focusAreas: ['Fluency & Coherence', 'Pronunciation', 'Lexical Resource', 'Grammar Range'],
