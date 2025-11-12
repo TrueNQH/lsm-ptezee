@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   MessageSquare,
   Phone,
@@ -24,7 +24,7 @@ import {
   MessageCircle,
   Headphones
 } from 'lucide-react'
-import { faqData, contactInfo, supportCategories, chatResponses, quickActions, supportStats } from '../../mock/support'
+import { get } from '../../services/api'
 import toast from 'react-hot-toast'
 
 const Support = () => {
@@ -49,6 +49,42 @@ const Support = () => {
   ])
   const [chatInput, setChatInput] = useState('')
   const [agentTyping, setAgentTyping] = useState(false)
+
+  // API-backed states
+  const [faq, setFaq] = useState([])
+  const [categories, setCategories] = useState([])
+  const [contact, setContact] = useState(null)
+  const [chatPresets, setChatPresets] = useState([])
+  const [actions, setActions] = useState([])
+  const [stats, setStats] = useState(null)
+
+  useEffect(() => {
+    let mounted = true
+    async function load() {
+      try {
+        const [faqRes, catRes, contactRes, chatRes, quickRes, statsRes] = await Promise.all([
+          get('/api/support/faq'),
+          get('/api/support/categories'),
+          get('/api/support/contact'),
+          get('/api/support/chat'),
+          get('/api/support/quick-actions'),
+          get('/api/support/stats'),
+        ])
+        if (!mounted) return
+        setFaq(Array.isArray(faqRes) ? faqRes : [])
+        setCategories(Array.isArray(catRes) ? catRes : [])
+        setContact(contactRes || null)
+        setChatPresets(Array.isArray(chatRes) ? chatRes : [])
+        setActions(Array.isArray(quickRes) ? quickRes : [])
+        setStats(statsRes || null)
+      } catch (err) {
+        console.error('Failed to load support data:', err)
+        toast.error('Không tải được dữ liệu hỗ trợ từ API')
+      }
+    }
+    load()
+    return () => { mounted = false }
+  }, [])
 
   const handleContactSubmit = (e) => {
     e.preventDefault()
@@ -75,7 +111,7 @@ const Support = () => {
     setExpandedFAQ(expandedFAQ === index ? null : index)
   }
 
-  const filteredFAQs = faqData.filter(faq =>
+  const filteredFAQs = faq.filter(faq =>
     faq.question.toLowerCase().includes(faqSearch.toLowerCase()) ||
     faq.answer.toLowerCase().includes(faqSearch.toLowerCase()) ||
     faq.category.toLowerCase().includes(faqSearch.toLowerCase())
@@ -97,8 +133,8 @@ const Support = () => {
     // Simulate agent response
     setTimeout(() => {
       // Use triggers if available; otherwise fall back to a generic reply
-      const responses = Array.isArray(chatResponses)
-        ? chatResponses.filter(r =>
+      const responses = Array.isArray(chatPresets)
+        ? chatPresets.filter(r =>
             typeof r.trigger === 'string' &&
             chatInput.toLowerCase().includes(r.trigger.toLowerCase())
           )
@@ -134,10 +170,10 @@ const Support = () => {
       {/* Support Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
-          { label: 'Avg. Response Time', value: supportStats?.averageResponseTime },
-          { label: 'Satisfaction Rate', value: supportStats?.satisfactionRate },
-          { label: 'Resolved Tickets', value: supportStats?.resolvedTickets },
-          { label: 'Active Agents', value: supportStats?.activeAgents }
+          { label: 'Avg. Response Time', value: stats?.average_response_time ?? stats?.averageResponseTime },
+          { label: 'Satisfaction Rate', value: stats?.satisfaction_rate ?? stats?.satisfactionRate },
+          { label: 'Resolved Tickets', value: stats?.resolved_tickets ?? stats?.resolvedTickets },
+          { label: 'Active Agents', value: stats?.active_agents ?? stats?.activeAgents }
         ].map((stat, index) => (
           <div key={index} className="bg-white dark:bg-gray-800 rounded-lg p-6 text-center border border-gray-200 dark:border-gray-700">
             <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">
@@ -157,8 +193,8 @@ const Support = () => {
             <Phone className="w-6 h-6 text-blue-600 dark:text-blue-400" />
           </div>
           <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Phone Support</h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-2">{contactInfo?.phone}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Response: {contactInfo?.responseTime?.phone}</p>
+          <p className="text-gray-600 dark:text-gray-400 mb-2">{contact?.phone ?? '—'}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Response: {contact?.resp_phone ?? contact?.responseTime?.phone ?? '—'}</p>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 text-center">
@@ -166,8 +202,8 @@ const Support = () => {
             <Mail className="w-6 h-6 text-green-600 dark:text-green-400" />
           </div>
           <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Email Support</h3>
-          <p className="text-gray-600 dark:text-gray-400 mb-2">{contactInfo?.email}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Response: {contactInfo?.responseTime?.email}</p>
+          <p className="text-gray-600 dark:text-gray-400 mb-2">{contact?.email ?? '—'}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Response: {contact?.resp_email ?? contact?.responseTime?.email ?? '—'}</p>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 border border-gray-200 dark:border-gray-700 text-center">
@@ -234,7 +270,7 @@ const Support = () => {
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
               >
                 <option value="">Select a category</option>
-                {supportCategories.map((category) => (
+                {categories.map((category) => (
                   <option key={category.value} value={category.value}>
                     {category.label}
                   </option>
@@ -304,7 +340,7 @@ const Support = () => {
           Quick Actions
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {quickActions.map((action, index) => (
+          {actions.map((action, index) => (
             <button
               key={index}
               onClick={() => toast.info(action.description)}

@@ -1,10 +1,31 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Edit, Download, Trash2, Shield, Bell, Calendar, ExternalLink, Eye, EyeOff } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { user as mockUser, skillOptions, studyTimeOptions, languageOptions } from '../../mock/user'
+import { skillOptions, studyTimeOptions, languageOptions } from '../../mock/user'
+import { get } from '../../services/api'
 
 export default function Overview() {
-  const [user, setUser] = useState(mockUser)
+  const defaultUser = {
+    name: '',
+    email: '',
+    phone: '',
+    dateOfBirth: '',
+    nationality: '',
+    avatar: '',
+    consentGiven: false,
+    uiLanguage: 'en',
+    emailNotifications: false,
+    smsNotifications: false,
+    testReminders: false,
+    classReminders: false,
+    progressReminders: false,
+    twoFactorEnabled: false,
+    studyTime: 'morning',
+    skillFocus: [],
+    linkedServices: { apeuni: false, googleCalendar: false },
+    loginHistory: [],
+  }
+  const [user, setUser] = useState(defaultUser)
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [changePasswordOpen, setChangePasswordOpen] = useState(false)
@@ -21,6 +42,64 @@ export default function Overview() {
     new: '',
     confirm: ''
   })
+
+  useEffect(() => {
+    let mounted = true
+    async function load() {
+      try {
+        const [profile, logins, skills] = await Promise.all([
+          get('/api/user/profile'),
+          get('/api/user/login-history'),
+          get('/api/user/skills'),
+        ])
+        if (!mounted) return
+        const mappedProfile = {
+          name: profile?.name || '',
+          email: profile?.email || '',
+          phone: profile?.phone || '',
+          dateOfBirth: profile?.date_of_birth ? new Date(profile.date_of_birth).toISOString().slice(0,10) : '',
+          nationality: profile?.nationality || '',
+          avatar: profile?.avatar || '',
+          consentGiven: !!profile?.consent_given,
+          uiLanguage: profile?.ui_language || 'en',
+          emailNotifications: !!profile?.email_notifications,
+          smsNotifications: !!profile?.sms_notifications,
+          testReminders: !!profile?.test_reminders,
+          classReminders: !!profile?.class_reminders,
+          progressReminders: !!profile?.progress_reminders,
+          twoFactorEnabled: !!profile?.two_factor_enabled,
+        }
+        const mappedLogins = Array.isArray(logins)
+          ? logins.map(l => ({
+              id: l.id,
+              date: l.date ? new Date(l.date).toLocaleString() : '',
+              ip: l.ip || '',
+              device: l.device || '',
+            }))
+          : []
+        const mappedSkills = Array.isArray(skills) ? skills.map(s => s.value).filter(Boolean) : []
+        const merged = {
+          ...defaultUser,
+          ...mappedProfile,
+          loginHistory: mappedLogins,
+          skillFocus: mappedSkills,
+        }
+        setUser(merged)
+        setEditForm({
+          name: merged.name,
+          email: merged.email,
+          phone: merged.phone,
+          dateOfBirth: merged.dateOfBirth,
+          nationality: merged.nationality,
+        })
+      } catch (err) {
+        console.error('Failed to load profile:', err)
+        toast.error('Không tải được dữ liệu hồ sơ từ API')
+      }
+    }
+    load()
+    return () => { mounted = false }
+  }, [])
 
   const handleEditSubmit = (e) => {
     e.preventDefault()

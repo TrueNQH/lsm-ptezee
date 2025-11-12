@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useBackButton } from '../../hooks/useBackButton'
 import { BookOpen, Video, FileText, Award, Eye, CheckCircle, Star, Clock, User, TrendingUp } from 'lucide-react'
@@ -7,6 +7,7 @@ import { shortCourses } from '../../mock/courses'
 import { practices as practiceRows, scoresTrendData } from '../../mock/center'
 import { practiceTests, studyTips } from '../../mock/practice'
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts'
+import { get, API_BASE } from '../../services/api'
 
 // Mock data for video lessons
 export const videoLessons = [
@@ -90,6 +91,14 @@ const Materials = () => {
   const { navigateWithState } = useBackButton()
   const [activeTab, setActiveTab] = useState('videos')
   const [selectedPractice, setSelectedPractice] = useState(null)
+  const [serverVideos, setServerVideos] = useState([])
+
+  useEffect(() => {
+    // Fetch uploaded videos from backend
+    get('/api/materials/videos')
+      .then(res => setServerVideos(res.videos || []))
+      .catch(() => setServerVideos([]))
+  }, [])
 
   // Compute practices data at top-level to respect Rules of Hooks
   const rows = useMemo(() => {
@@ -184,66 +193,58 @@ const Materials = () => {
       <div>
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Video Lessons</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {videoLessons.map(video => (
-            <div key={video.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+          {serverVideos.map(v => (
+            <div key={`srv-${v.id}`} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
               <div className="relative">
-                <img 
-                  src={video.thumbnail} 
-                  alt={video.title}
+                <img
+                  src={v.thumbnail || 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=900&q=60'}
+                  alt={v.title}
                   className="w-full h-48 object-cover"
                 />
                 <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                  <button 
-                    onClick={() => navigateWithState(`/video/${video.id}`, { videoTitle: video.title })}
+                  <button
+                    onClick={() => navigateWithState(`/video/${v.id}`, { videoTitle: v.title })}
                     className="bg-white text-blue-600 px-6 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors"
                   >
                     Xem bài giảng
                   </button>
                 </div>
-                <div className="absolute bottom-2 right-2 bg-black bg-opacity-75 text-white px-2 py-1 rounded text-sm">
-                  {video.duration}
-                </div>
-                {video.completed && (
+                {v.duration && (
+                  <div className="absolute bottom-2 right-2 bg-black bg-opacity-75 text-white px-2 py-1 rounded text-sm">
+                    {v.duration}
+                  </div>
+                )}
+                {v.completed && (
                   <div className="absolute top-2 right-2 bg-green-500 text-white p-1 rounded-full">
                     <CheckCircle className="w-4 h-4" />
                   </div>
                 )}
               </div>
-              
               <div className="p-4">
-                <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">{video.title}</h3>
-                <p className="text-sm text-gray-600 mb-3 line-clamp-2">{video.description}</p>
-                
+                <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">{v.title}</h3>
+                {v.description && <p className="text-sm text-gray-600 mb-3 line-clamp-2">{v.description}</p>}
                 <div className="flex items-center gap-2 mb-3">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    video.level === 'beginner' ? 'bg-green-100 text-green-800' :
-                    video.level === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {video.level}
-                  </span>
-                  <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                    {video.skill}
-                  </span>
+                  {v.level && (
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      v.level === 'beginner' ? 'bg-green-100 text-green-800' :
+                      v.level === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
+                      v.level === 'advanced' ? 'bg-red-100 text-red-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {v.level}
+                    </span>
+                  )}
+                  {v.cefr_level && (
+                    <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">CEFR {v.cefr_level}</span>
+                  )}
                 </div>
-
-                {video.progress > 0 && (
-                  <div className="mb-3">
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-600">Progress</span>
-                      <span className="text-gray-900 font-medium">{Math.round(video.progress * 100)}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                        // style={{ width: `${video.progress}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                )}
+                <div className="text-xs text-gray-500">Uploaded • {v.created_at ? new Date(v.created_at).toLocaleString() : 'unknown'}</div>
               </div>
             </div>
           ))}
+          {serverVideos.length === 0 && (
+            <div className="text-sm text-gray-600">Chưa có video nào từ hệ thống. Vui lòng thử lại sau.</div>
+          )}
         </div>
       </div>
     </div>

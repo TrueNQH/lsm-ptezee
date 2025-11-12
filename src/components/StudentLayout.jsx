@@ -18,6 +18,7 @@ const sidebarItems = [
   { id: 'overview', label: 'Overview', icon: User, path: '/student/overview' },
   { id: 'center', label: 'Student Center', icon: GraduationCap, path: '/student/center' },
   { id: 'materials', label: 'Learning Materials', icon: BookOpen, path: '/student/materials' },
+  { id: 'vocab-practice', label: 'Vocab Practice', icon: BookOpen, path: '/student/vocab-practice' },
   { id: 'services', label: 'Services', icon: Settings, path: '/student/services' },
   { id: 'support', label: 'Support', icon: HelpCircle, path: '/student/support' }
 ]

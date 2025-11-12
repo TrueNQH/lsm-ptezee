@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useBackButton } from '../../hooks/useBackButton'
 import BackButton from '../../components/BackButton'
@@ -31,9 +32,10 @@ import {
   FileText,
   Brain,
   Target,
-  Award
+  Award,
+  MessageSquare
 } from 'lucide-react'
-import { videoLessons } from './Materials'
+import { get, API_BASE } from '../../services/api'
 import toast from 'react-hot-toast'
 
 // Mock vocabulary dictionary
@@ -86,8 +88,41 @@ const VideoPlayer = () => {
   const { goBack } = useBackButton('/student/materials')
   const videoRef = useRef(null)
 
-  // Find the video by ID
-  const video = videoLessons.find(v => v.id === parseInt(videoId))
+  // Always fetch from server; fallback to mock only if server fails
+  const [video, setVideo] = useState(null)
+
+  useEffect(() => {
+    get(`/api/materials/videos/${videoId}`)
+      .then(res => {
+        const v = res.video || {}
+        const mapped = {
+          id: v.id,
+          courseId: v.courseId ?? null,
+          title: v.title ?? '',
+          description: v.description ?? '',
+          skill: v.skill ?? '',
+          level: v.level ?? '',
+          cefrLevel: v.cefrLevel ?? '',
+          tags: Array.isArray(v.tags) ? v.tags : [],
+          duration: v.duration ?? '',
+          durationSec: v.durationSec ?? null,
+          thumbnail: v.thumbnail ?? '',
+          videoUrl: v.videoUrl ? `${API_BASE}${v.videoUrl}` : '',
+          completed: !!v.completed,
+          progress: typeof v.progress === 'number' ? v.progress : 0,
+          chapters: Array.isArray(v.chapters) ? v.chapters : [],
+          notes: Array.isArray(v.notes) ? v.notes : [],
+          subtitles: Array.isArray(v.subtitles) ? v.subtitles : [],
+          createdBy: v.createdBy ?? null,
+          createdAt: v.createdAt ?? null,
+        }
+        setVideo(mapped)
+      })
+      .catch(() => {
+        // If API fails, keep video as null and show 'Video không tìm thấy'
+        setVideo(null)
+      })
+  }, [videoId])
 
   // Video player states
   const [isPlaying, setIsPlaying] = useState(false)
@@ -100,7 +135,7 @@ const VideoPlayer = () => {
   const [showControls, setShowControls] = useState(true)
 
   // Note-taking states
-  const [notes, setNotes] = useState(video?.notes || [])
+  const [notes, setNotes] = useState([])
   const [currentNote, setCurrentNote] = useState('')
   const [noteTimestamp, setNoteTimestamp] = useState(0)
   const [showNoteEditor, setShowNoteEditor] = useState(false)
@@ -114,9 +149,56 @@ const VideoPlayer = () => {
   const [showVocabularyPanel, setShowVocabularyPanel] = useState(false)
   const [selectedWord, setSelectedWord] = useState(null)
 
+  // Practice test states
+  const [practiceQuestions, setPracticeQuestions] = useState([])
+  const [practiceStarted, setPracticeStarted] = useState(false)
+  const [practiceIndex, setPracticeIndex] = useState(0)
+  const [practiceScore, setPracticeScore] = useState(0)
+  const [practiceSelected, setPracticeSelected] = useState(null)
+  const [practiceFinished, setPracticeFinished] = useState(false)
+
   // Progress states
   const [isCompleted, setIsCompleted] = useState(video?.completed || false)
   const [watchProgress, setWatchProgress] = useState(video?.progress || 0)
+
+  // Right sidebar tabs + Chat states
+  const [rightTab, setRightTab] = useState('chat')
+  const [chatMessages, setChatMessages] = useState([])
+  const [chatInput, setChatInput] = useState('')
+  const [chatLoading, setChatLoading] = useState(false)
+  const chatListRef = useRef(null)
+
+  // Normalize incoming notes: accept array of strings or objects
+  const normalizeNotes = (raw) => {
+    if (!Array.isArray(raw)) return []
+    return raw.map((n, idx) => {
+      if (typeof n === 'string') {
+        return {
+          id: Date.now() + idx,
+          text: n,
+          timestamp: null,
+          type: 'text',
+          createdAt: new Date().toISOString(),
+        }
+      }
+      return {
+        id: n.id ?? (Date.now() + idx),
+        text: n.text ?? '',
+        timestamp: typeof n.timestamp === 'number' ? n.timestamp : null,
+        type: n.type ?? 'text',
+        createdAt: n.createdAt ?? new Date().toISOString(),
+      }
+    })
+  }
+
+  // Sync derived states when video loads
+  useEffect(() => {
+    if (video) {
+      setNotes(normalizeNotes(video.notes))
+      setIsCompleted(!!video.completed)
+      setWatchProgress(typeof video.progress === 'number' ? video.progress : 0)
+    }
+  }, [video])
 
   // Auto-save vocabulary search
   useEffect(() => {
@@ -129,6 +211,15 @@ const VideoPlayer = () => {
       setVocabularyResults([])
     }
   }, [vocabularySearch])
+
+  // Load saved words from localStorage on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('dla_saved_words')
+      const list = raw ? JSON.parse(raw) : []
+      if (Array.isArray(list)) setSavedWords(list)
+    } catch {}
+  }, [])
 
   // Update progress as video plays
   useEffect(() => {
@@ -144,13 +235,21 @@ const VideoPlayer = () => {
     }
   }, [currentTime, duration, isCompleted])
 
+  // Auto-scroll chat to bottom when new messages arrive
+  useEffect(() => {
+    if (chatListRef.current) {
+      chatListRef.current.scrollTop = chatListRef.current.scrollHeight
+    }
+  }, [chatMessages, chatLoading])
+
   if (!video) {
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Video không tìm thấy</h2>
           <button 
-            onClick={() => navigate('/materials')}
+            onClick={() => navigate('/student/materials')}
             className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             Quay lại Materials
@@ -282,7 +381,9 @@ const VideoPlayer = () => {
   }
 
   const jumpToTimestamp = (timestamp) => {
-    handleSeek(timestamp)
+    if (typeof timestamp === 'number' && !Number.isNaN(timestamp)) {
+      handleSeek(timestamp)
+    }
   }
 
   // Vocabulary functions
@@ -296,25 +397,182 @@ const VideoPlayer = () => {
     setVocabularyResults(results)
   }
 
+  // Helper: shuffle array copy
+  const shuffle = (arr) => {
+    const copy = [...arr]
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[copy[i], copy[j]] = [copy[j], copy[i]]
+    }
+    return copy
+  }
+
+  // Generate a simple MCQ for a word
+  const generatePracticeForWord = (wordData) => {
+    const key = wordData.word?.toLowerCase()
+    const entry = vocabularyDictionary[key]
+    if (entry && entry.definition) {
+      const correct = entry.definition
+      const distractorsPool = Object.keys(vocabularyDictionary)
+        .filter(k => k !== key)
+        .map(k => vocabularyDictionary[k].definition)
+      const distractors = shuffle(distractorsPool).slice(0, 3)
+      const options = shuffle([correct, ...distractors])
+      const correctIndex = options.indexOf(correct)
+      const q = {
+        id: Date.now() + Math.random(),
+        type: 'definition_mcq',
+        word: wordData.word,
+        prompt: `Chọn nghĩa đúng của "${wordData.word}"`,
+        options,
+        correctIndex,
+      }
+      setPracticeQuestions(prev => [...prev, q])
+    } else {
+      // Fallback freeform question if no dictionary entry
+      const q = {
+        id: Date.now() + Math.random(),
+        type: 'freeform',
+        word: wordData.word,
+        prompt: `Viết một câu có chứa từ "${wordData.word}"`,
+        options: [],
+        correctIndex: -1,
+      }
+      setPracticeQuestions(prev => [...prev, q])
+    }
+  }
+
   const saveWord = (wordData) => {
     if (!savedWords.find(w => w.word === wordData.word)) {
-      setSavedWords([...savedWords, { ...wordData, savedAt: new Date().toISOString() }])
+      const updated = [...savedWords, { ...wordData, savedAt: new Date().toISOString() }]
+      setSavedWords(updated)
+      try {
+        localStorage.setItem('dla_saved_words', JSON.stringify(updated))
+      } catch {}
       toast.success(`Từ "${wordData.word}" đã được lưu!`)
+      generatePracticeForWord(wordData)
     } else {
       toast.info('Từ này đã có trong danh sách!')
     }
   }
 
   const removeWord = (wordToRemove) => {
-    setSavedWords(savedWords.filter(w => w.word !== wordToRemove))
+    const updated = savedWords.filter(w => w.word !== wordToRemove)
+    setSavedWords(updated)
+    try {
+      localStorage.setItem('dla_saved_words', JSON.stringify(updated))
+    } catch {}
     toast.success('Từ đã được xóa khỏi danh sách!')
+  }
+
+  const handleVocabularyKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      const raw = vocabularySearch.trim()
+      if (!raw) return
+      const key = raw.toLowerCase()
+      const entry = vocabularyDictionary[key]
+      const wordData = entry
+        ? { word: key, ...entry }
+        : { word: raw }
+      saveWord(wordData)
+      setVocabularySearch('')
+    }
+  }
+
+  const startPractice = () => {
+    // Điều hướng sang trang luyện tập từ vựng và gửi danh sách từ đã lưu
+    if (!savedWords || savedWords.length === 0) {
+      toast.error('Chưa có từ vựng. Hãy lưu từ vựng để luyện tập.')
+      return
+    }
+    try {
+      // Đồng bộ vào localStorage để trang luyện tập có thể đọc trực tiếp nếu cần
+      localStorage.setItem('dla_saved_words', JSON.stringify(savedWords))
+    } catch {}
+    navigate('/student/vocab-practice', { state: { words: savedWords } })
+  }
+
+  const submitPracticeAnswer = () => {
+    const q = practiceQuestions[practiceIndex]
+    if (!q) return
+    if (q.type === 'definition_mcq') {
+      if (practiceSelected === null) {
+        toast.error('Hãy chọn một đáp án')
+        return
+      }
+      if (practiceSelected === q.correctIndex) {
+        setPracticeScore(s => s + 1)
+        toast.success('Chính xác!')
+      } else {
+        toast.error('Chưa đúng, thử câu tiếp theo!')
+      }
+    } else {
+      // freeform: accept and move on
+      toast.success('Đã ghi nhận câu trả lời!')
+    }
+    const next = practiceIndex + 1
+    if (next >= practiceQuestions.length) {
+      setPracticeFinished(true)
+      setPracticeStarted(false)
+    } else {
+      setPracticeIndex(next)
+      setPracticeSelected(null)
+    }
   }
 
   const markAsCompleted = () => {
     setIsCompleted(true)
     toast.success('Bài học đã được đánh dấu hoàn thành!')
   }
+  
 
+  const sendChatMessage = async () => {
+    const text = chatInput.trim()
+    if (!text) return
+    const apiKey = import.meta.env.VITE_OPENAI_API_KEY
+    if (!apiKey) {
+      toast.error('Chưa cấu hình VITE_OPENAI_API_KEY')
+      return
+    }
+    const userMsg = { role: 'user', content: text }
+    setChatMessages(prev => [...prev, userMsg])
+    setChatInput('')
+    setChatLoading(true)
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: import.meta.env.VITE_OPENAI_MODEL || 'gpt-4o-mini',
+          temperature: 0.7,
+          messages: [
+            { role: 'system', content: 'Bạn là trợ lý học tập thân thiện, trả lời ngắn gọn, rõ ràng.' },
+            { role: 'system', content: `Ngữ cảnh video: title="${video?.title || ''}", description="${video?.description || ''}", thời điểm=${formatTime(currentTime)}.` },
+            ...chatMessages,
+            userMsg,
+          ],
+        }),
+      })
+      if (!res.ok) {
+        const errText = await res.text()
+        throw new Error(errText)
+      }
+      const data = await res.json()
+      const reply = data?.choices?.[0]?.message?.content || 'Không có phản hồi.'
+      setChatMessages(prev => [...prev, { role: 'assistant', content: reply }])
+    } catch (e) {
+      setChatMessages(prev => [
+        ...prev,
+        { role: 'assistant', content: `Xin lỗi, có lỗi khi gọi AI: ${e.message}` },
+      ])
+    } finally {
+      setChatLoading(false)
+    }
+  }
+   
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
@@ -543,105 +801,170 @@ const VideoPlayer = () => {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Notes Panel */}
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-800 flex items-center space-x-2">
-                  <FileText className="w-5 h-5" />
+          <div className="space-y-6 w-full max-w-[360px] mx-auto">
+            {/* Chat + Notes Tabs */}
+            <div className="bg-white rounded-xl shadow-lg">
+              <div className="flex">
+                <button
+                  onClick={() => setRightTab('chat')}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 border-b ${rightTab === 'chat' ? 'text-blue-700 border-blue-600 bg-blue-50' : 'text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span>Chat với AI</span>
+                </button>
+                <button
+                  onClick={() => setRightTab('note')}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 border-b ${rightTab === 'note' ? 'text-blue-700 border-blue-600 bg-blue-50' : 'text-gray-600 border-gray-200 hover:bg-gray-50'}`}
+                >
+                  <FileText className="w-4 h-4" />
                   <span>Ghi chú</span>
-                </h3>
-                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">
-                  {notes.length}
-                </span>
+                </button>
               </div>
-              
-              {/* Note Editor */}
-              {showNoteEditor && (
-                <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600">
-                      Thời gian: {formatTime(noteTimestamp)}
-                    </span>
-                    <select
-                      value={noteType}
-                      onChange={(e) => setNoteType(e.target.value)}
-                      className="text-sm border border-gray-300 rounded px-2 py-1"
-                    >
-                      <option value="text">Ghi chú</option>
-                      <option value="highlight">Điểm quan trọng</option>
-                      <option value="bookmark">Đánh dấu</option>
-                    </select>
+
+              {/* Chat Tab */}
+              {rightTab === 'chat' && (
+                <div className="p-6">
+                  <div ref={chatListRef} className="space-y-3 max-h-96 overflow-y-auto">
+                    {chatMessages.length === 0 ? (
+                      <div className="text-center text-gray-500 py-8">
+                        <p>Bạn có thể hỏi về nội dung video, thuật ngữ, ví dụ, v.v.</p>
+                      </div>
+                    ) : (
+                      chatMessages.map((m, idx) => (
+                        <div key={idx} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                          <div className={`${m.role === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'} px-3 py-2 rounded-2xl max-w-[75%] whitespace-pre-wrap`}>
+                            {m.role === 'assistant' ? (
+                              <ReactMarkdown>{m.content}</ReactMarkdown>
+                            ) : (
+                              m.content
+                            )}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                    {chatLoading && (
+                      <div className="flex justify-start">
+                        <div className="bg-gray-100 text-gray-600 px-3 py-2 rounded-2xl text-sm">Đang nghĩ…</div>
+                      </div>
+                    )}
                   </div>
-                  <textarea
-                    value={currentNote}
-                    onChange={(e) => setCurrentNote(e.target.value)}
-                    placeholder="Nhập ghi chú của bạn..."
-                    className="w-full p-3 border border-gray-300 rounded-lg resize-none"
-                    rows="3"
-                  />
-                  <div className="flex space-x-2 mt-3">
-                    <button
-                      onClick={editingNote ? updateNote : addNote}
-                      className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      {editingNote ? 'Cập nhật' : 'Lưu'}
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowNoteEditor(false)
-                        setEditingNote(null)
-                        setCurrentNote('')
-                      }}
-                      className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
-                    >
-                      Hủy
-                    </button>
+
+                  <div className="mt-4">
+                    <textarea
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      placeholder="Nhập câu hỏi của bạn…"
+                      className="w-full p-3 border border-gray-300 rounded-lg resize-none"
+                      rows={3}
+                    />
+                    <div className="flex justify-end mt-2">
+                      <button
+                        onClick={sendChatMessage}
+                        disabled={chatLoading}
+                        className={`px-4 py-2 rounded-lg ${chatLoading ? 'bg-gray-300 text-gray-600 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                      >
+                        Gửi
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
-              
-              {/* Notes List */}
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {notes.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4">Chưa có ghi chú nào</p>
-                ) : (
-                  notes.map((note) => (
-                    <div key={note.id} className="p-3 bg-gray-50 rounded-lg">
+
+              {/* Notes Tab */}
+              {rightTab === 'note' && (
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-800 flex items-center space-x-2">
+                      <FileText className="w-5 h-5" />
+                      <span>Ghi chú</span>
+                    </h3>
+                    <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm">
+                      {notes.length}
+                    </span>
+                  </div>
+
+                  {showNoteEditor && (
+                    <div className="mb-4 p-4 bg-gray-50 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
-                        <button
-                          onClick={() => jumpToTimestamp(note.timestamp)}
-                          className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                        <span className="text-sm text-gray-600">Thời gian: {formatTime(noteTimestamp)}</span>
+                        <select
+                          value={noteType}
+                          onChange={(e) => setNoteType(e.target.value)}
+                          className="text-sm border border-gray-300 rounded px-2 py-1"
                         >
-                          {formatTime(note.timestamp)}
-                        </button>
-                        <div className="flex space-x-1">
-                          <button
-                            onClick={() => editNote(note)}
-                            className="text-gray-400 hover:text-blue-600 transition-colors"
-                          >
-                            <Edit3 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => deleteNote(note.id)}
-                            className="text-gray-400 hover:text-red-600 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
+                          <option value="text">Ghi chú</option>
+                          <option value="highlight">Điểm quan trọng</option>
+                          <option value="bookmark">Đánh dấu</option>
+                        </select>
                       </div>
-                      <p className="text-sm text-gray-700">{note.text}</p>
-                      {note.type !== 'text' && (
-                        <span className={`inline-block mt-2 px-2 py-1 rounded-full text-xs ${
-                          note.type === 'highlight' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'
-                        }`}>
-                          {note.type === 'highlight' ? 'Quan trọng' : 'Đánh dấu'}
-                        </span>
-                      )}
+                      <textarea
+                        value={currentNote}
+                        onChange={(e) => setCurrentNote(e.target.value)}
+                        placeholder="Nhập ghi chú của bạn..."
+                        className="w-full p-3 border border-gray-300 rounded-lg resize-none"
+                        rows="3"
+                      />
+                      <div className="flex space-x-2 mt-3">
+                        <button
+                          onClick={editingNote ? updateNote : addNote}
+                          className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          {editingNote ? 'Cập nhật' : 'Lưu'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            setShowNoteEditor(false)
+                            setEditingNote(null)
+                            setCurrentNote('')
+                          }}
+                          className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                        >
+                          Hủy
+                        </button>
+                      </div>
                     </div>
-                  ))
-                )}
-              </div>
+                  )}
+
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {notes.length === 0 ? (
+                      <p className="text-gray-500 text-center py-4">Chưa có ghi chú nào</p>
+                    ) : (
+                      notes.map((note) => (
+                        <div key={note.id} className="p-3 bg-gray-50 rounded-lg">
+                          <div className="flex items-center justify-between mb-2">
+                            <button
+                              onClick={() => jumpToTimestamp(note.timestamp)}
+                              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                            >
+                              {formatTime(note.timestamp)}
+                            </button>
+                            <div className="flex space-x-1">
+                              <button
+                                onClick={() => editNote(note)}
+                                className="text-gray-400 hover:text-blue-600 transition-colors"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => deleteNote(note.id)}
+                                className="text-gray-400 hover:text-red-600 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                          <p className="text-sm text-gray-700">{note.text}</p>
+                          {note.type !== 'text' && (
+                            <span className={`inline-block mt-2 px-2 py-1 rounded-full text-xs ${note.type === 'highlight' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
+                              {note.type === 'highlight' ? 'Quan trọng' : 'Đánh dấu'}
+                            </span>
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Vocabulary Panel */}
@@ -665,6 +988,7 @@ const VideoPlayer = () => {
                   type="text"
                   value={vocabularySearch}
                   onChange={(e) => setVocabularySearch(e.target.value)}
+                  onKeyDown={handleVocabularyKeyDown}
                   placeholder="Tìm kiếm từ vựng..."
                   className="w-full p-3 border border-gray-300 rounded-lg"
                 />
@@ -712,6 +1036,63 @@ const VideoPlayer = () => {
                     ))
                   )}
                 </div>
+              </div>
+
+              {/* Practice Tests */}
+              <div className="mt-6 border-t pt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-medium text-gray-800">Bài luyện tập</h4>
+                  <span className="text-sm text-gray-600">Câu hỏi: {practiceQuestions.length}</span>
+                </div>
+                {!practiceStarted && !practiceFinished && (
+                  <button
+                    onClick={startPractice}
+                    className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Bắt đầu luyện tập
+                  </button>
+                )}
+
+                {practiceStarted && practiceQuestions[practiceIndex] && (
+                  <div className="mt-3 p-3 bg-gray-50 rounded">
+                    <div className="text-sm text-gray-600 mb-1">Câu {practiceIndex + 1}/{practiceQuestions.length}</div>
+                    <p className="font-medium text-gray-800 mb-2">{practiceQuestions[practiceIndex].prompt}</p>
+                    {practiceQuestions[practiceIndex].type === 'definition_mcq' ? (
+                      <div className="space-y-2">
+                        {practiceQuestions[practiceIndex].options.map((opt, i) => (
+                          <label key={i} className="flex items-center gap-2 p-2 bg-white border rounded cursor-pointer">
+                            <input
+                              type="radio"
+                              name="practice"
+                              checked={practiceSelected === i}
+                              onChange={() => setPracticeSelected(i)}
+                            />
+                            <span className="text-sm text-gray-800">{opt}</span>
+                          </label>
+                        ))}
+                      </div>
+                    ) : (
+                      <div>
+                        <textarea className="w-full p-2 border rounded" rows="3" placeholder="Nhập câu của bạn..." />
+                      </div>
+                    )}
+                    <div className="flex justify-end mt-3">
+                      <button
+                        onClick={submitPracticeAnswer}
+                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                      >
+                        Gửi đáp án
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {practiceFinished && (
+                  <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded">
+                    <p className="font-medium text-green-700">Hoàn thành!</p>
+                    <p className="text-sm text-green-800">Điểm: {practiceScore}/{practiceQuestions.length}</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

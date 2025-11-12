@@ -341,7 +341,7 @@ export default function HomePro() {
                   playsInline
                 />
               </div>
-              <div className="mt-3 text-sm text-slate-600">Demo quy trình học tập & quản trị trên DLA LMS</div>
+              
             </Card>
           </div>
           {/* Step text */}

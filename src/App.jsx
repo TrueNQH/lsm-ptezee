@@ -12,6 +12,7 @@ import UserManagement from './pages/admin/UserManagement'
 import StudentClass from './pages/admin/StudentClass'
 import CourseManagement from './pages/admin/CourseManagement'
 import Reports from './pages/admin/Reports'
+import MaterialsUpload from './pages/admin/MaterialsUpload'
 import Login from './pages/Login'
 import StudentLogin from './pages/student/StudentLogin'
 import StudentLayout from './components/StudentLayout'
@@ -21,8 +22,9 @@ import Materials from './pages/student/Materials'
 import CourseDetail from './pages/student/CourseDetail'
 import BookDetail from './pages/student/BookDetail'
 import VideoPlayer from './pages/student/VideoPlayer'
-import Services from './pages/student/Services'
-import Support from './pages/student/Support'
+  import Services from './pages/student/Services'
+  import Support from './pages/student/Support'
+  import VocabPractice from './pages/student/VocabPractice'
 // Practices page was moved into Materials → Practice Tests tab
 
 function App() {
@@ -57,6 +59,7 @@ function App() {
                 <Route path="students" element={<StudentClass />} />
                 <Route path="courses" element={<CourseManagement />} />
                 <Route path="reports" element={<Reports />} />
+                <Route path="materials" element={<MaterialsUpload />} />
               </Route>
               
               {/* Student routes */}
@@ -64,6 +67,7 @@ function App() {
                 <Route path="overview" element={<Overview />} />
                 <Route path="center" element={<Center />} />
                 <Route path="materials" element={<Materials />} />
+                <Route path="vocab-practice" element={<VocabPractice />} />
                 <Route path="services" element={<Services />} />
                 <Route path="support" element={<Support />} />
               </Route>

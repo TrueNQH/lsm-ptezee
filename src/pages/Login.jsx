@@ -16,7 +16,7 @@ export default function Login() {
     setIsLoading(true)
     
     try {
-      const res = login(email, password)
+      const res = await login(email, password)
       if (res.ok) {
         navigate(res.redirect || '/')
       } else {
